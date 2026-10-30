@@ -20,25 +20,25 @@ This document outlines the collaborative engineering roadmap, team role allocati
 ```mermaid
 gantt
     title CyberSentinel AI Project Timeline
-    dateFormat  YYYY-MM-DD
-    section Sprint 0: Architecture & Data
-    Repo Setup & Tooling Setup           :done, 2026-11-01, 3d
-    Dataset Acquisition (CIC-IDS2017)    :active, 2026-11-04, 4d
-    EDA & Cleaning Notebooks             :2026-11-08, 4d
-    section Sprint 1: ML & XAI
+    dateFormat YYYY-MM-DD
+    section Sprint 0 - Architecture and Data
+    Repo Setup and Scaffolding           :done, 2026-11-01, 3d
+    Dataset Acquisition CIC-IDS2017      :active, 2026-11-04, 4d
+    EDA and Cleaning Notebooks           :2026-11-08, 4d
+    section Sprint 1 - ML and XAI
     Supervised XGBoost Pipeline          :2026-11-12, 5d
     Unsupervised Anomaly Model           :2026-11-17, 4d
     SHAP TreeExplainer Integration       :2026-11-21, 4d
-    section Sprint 2: Backend Core
-    PostgreSQL & SQLAlchemy Models       :2026-11-25, 4d
-    FastAPI Inference & Alert Endpoints  :2026-11-29, 5d
-    Triage & Priority Rule Engine        :2026-12-04, 3d
-    section Sprint 3: Dashboard & Drift
-    Web Dashboard UI (Bootstrap 5)       :2026-12-07, 6d
-    Drift Monitoring (KS & PSI Tests)    :2026-12-13, 4d
-    section Sprint 4: Evaluation & Polish
+    section Sprint 2 - Backend Core
+    PostgreSQL and SQLAlchemy Models     :2026-11-25, 4d
+    FastAPI Inference and Alert Routes   :2026-11-29, 5d
+    Triage and Priority Rule Engine      :2026-12-04, 3d
+    section Sprint 3 - Dashboard and Drift
+    Web Dashboard UI Bootstrap 5         :2026-12-07, 6d
+    Drift Monitoring KS and PSI Tests    :2026-12-13, 4d
+    section Sprint 4 - Evaluation and Polish
     Comprehensive Benchmarking           :2026-12-17, 4d
-    Docker Compose & Defense Demo        :2026-12-21, 4d
+    Docker Compose and Defense Demo      :2026-12-21, 4d
 ```
 
 ---

@@ -60,9 +60,10 @@ Flow features extracted by `CICFlowMeter` are categorized into 5 primary groups:
 flowchart TD
     RAW["Raw CSV / Parquet"] --> DEDUP["Deduplicate Identical Rows"]
     DEDUP --> STRIP["Strip Whitespace from Column Names"]
-    STRIP --> INF_NAN["Handle Infinity & NaN Values"]
-    INF_NAN --> NEG_VAL["Filter Negative Flow Durations / Window Sizes"]
-    NEG_VAL --> ENCODE["Label Encoding (Multi-Class & Binary)"]
+    STRIP --> INF_NAN["Handle Infinity and NaN Values"]
+    INF_NAN --> NEG_VAL["Filter Negative Flow Durations or Window Sizes"]
+    ENCODE["Label Encoding (Multi-Class and Binary)"]
+    NEG_VAL --> ENCODE
     ENCODE --> SPLIT["Leakage-Free Partitioning (Train / Test)"]
     SPLIT --> SCALE["Fit RobustScaler on Train Set Only"]
     SCALE --> OUT[("Processed Parquet Files")]

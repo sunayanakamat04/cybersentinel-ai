@@ -8,11 +8,11 @@ CyberSentinel AI adopts an asynchronous, modular microservice-style architecture
 
 ```mermaid
 flowchart TD
-    subgraph INGESTION["1. Ingestion & Preprocessing Layer"]
-        DS1["Raw PCAP / NetFlow Sources"] --> INGEST["Flow Validator & Sanitizer"]
+    subgraph INGESTION["1. Ingestion and Preprocessing Layer"]
+        DS1["Raw PCAP / NetFlow Sources"] --> INGEST["Flow Validator and Sanitizer"]
         DS2["CIC-IDS2017 / 2018 CSV Dumps"] --> INGEST
         DS3["Live Streaming Flow Events (FastAPI REST)"] --> INGEST
-        INGEST --> CLEAN["Missing Value Imputation & Inf Replacer"]
+        INGEST --> CLEAN["Missing Value Imputation and Inf Replacer"]
         CLEAN --> SCALE["RobustScaler / StandardScaler Transform"]
     end
 
@@ -20,32 +20,32 @@ flowchart TD
         SCALE --> SUP_PIPE["Supervised Classifier (XGBoost Multiclass)"]
         SCALE --> UNSUP_PIPE["Unsupervised Detector (Isolation Forest / OC-SVM)"]
         
-        SUP_PIPE -->|P(Attack_k), Class Prediction| FUSION["Alert Prioritization & Triage Engine"]
-        UNSUP_PIPE -->|Anomaly Score [0, 1]| FUSION
+        SUP_PIPE -->|"Attack Probabilities and Class Prediction"| FUSION["Alert Prioritization and Triage Engine"]
+        UNSUP_PIPE -->|"Anomaly Score (0 to 1)"| FUSION
     end
 
     subgraph XAI_LAYER["3. Explainable AI (XAI) Engine"]
-        FUSION -->|If Malicious or Anomaly| SHAP_EXEC["SHAP TreeExplainer"]
-        SCALE -.->|Feature Matrix| SHAP_EXEC
-        SHAP_EXEC -->|Top-K Attributions & Base Value| ATTR_RECORD["Local Feature Importance Vector"]
+        FUSION -->|"If Malicious or Anomaly"| SHAP_EXEC["SHAP TreeExplainer"]
+        SCALE -.->|"Feature Matrix"| SHAP_EXEC
+        SHAP_EXEC -->|"Top-K Attributions and Base Value"| ATTR_RECORD["Local Feature Importance Vector"]
     end
 
-    subgraph PERSISTENCE["4. Data & State Persistence Layer"]
-        FUSION --> DB_SAVE["Alert & Flow Record Ingestion"]
+    subgraph PERSISTENCE["4. Data and State Persistence Layer"]
+        FUSION --> DB_SAVE["Alert and Flow Record Ingestion"]
         ATTR_RECORD --> DB_SAVE
         DB_SAVE --> PG_DB[("PostgreSQL / SQLite Database")]
-        PG_DB --> REPO["Alert Repository & Historical Audit Log"]
+        PG_DB --> REPO["Alert Repository and Historical Audit Log"]
     end
 
     subgraph DRIFT_ENGINE["5. Continuous Drift Monitoring"]
         SCALE --> DRIFT_WIN["Sliding Window Buffer (N=1000)"]
-        REF_DATA[("Baseline Reference Distribution")] --> DRIFT_CALC["KS-Test & PSI Estimator"]
+        REF_DATA[("Baseline Reference Distribution")] --> DRIFT_CALC["KS-Test and PSI Estimator"]
         DRIFT_WIN --> DRIFT_CALC
-        DRIFT_CALC -->|Drift Metrics & Status| DRIFT_LOG["Drift Alerts & Metric Store"]
+        DRIFT_CALC -->|"Drift Metrics and Status"| DRIFT_LOG["Drift Alerts and Metric Store"]
     end
 
-    subgraph PRESENTATION["6. Web Dashboard & Analyst Cockpit"]
-        REPO --> REST_API["FastAPI REST & WebSocket Endpoints"]
+    subgraph PRESENTATION["6. Web Dashboard and Analyst Cockpit"]
+        REPO --> REST_API["FastAPI REST and WebSocket Endpoints"]
         DRIFT_LOG --> REST_API
         REST_API --> UI_DASH["Interactive Web Dashboard (HTML5 / Bootstrap 5 / Chart.js)"]
         UI_DASH --> ANALYST["Security Operations Center (SOC) Analyst"]
@@ -70,29 +70,29 @@ sequenceDiagram
     actor Analyst as SOC Analyst Dashboard
 
     Sensor->>API: POST /api/v1/predict/single (Flow Record JSON)
-    API->>Pre: Validate schema & clean values (Inf -> Max, NaN -> 0)
+    API->>Pre: Validate schema and clean values
     Pre->>Pre: Transform with fitted Scaler
     
     par Parallel ML Evaluation
-        Pre->>Super: Predict class probabilities P(y|X)
-        Super-->>Triage: Return Top Class & Probability
+        Pre->>Super: Predict class probabilities
+        Super-->>Triage: Return Top Class and Probability
     and
         Pre->>Anom: Compute Isolation Path Depth
-        Anom-->>Triage: Return Anomaly Score [0, 1]
+        Anom-->>Triage: Return Anomaly Score
     end
 
-    Triage->>Triage: Apply Severity Matrix Rules (Critical, High, Medium, Low, Info)
+    Triage->>Triage: Apply Severity Matrix Rules
     
-    opt If Priority >= Medium
+    opt Priority Elevated
         Triage->>XAI: Compute local Shapley contributions
-        XAI-->>Triage: Return Top-5 influential features & impact
+        XAI-->>Triage: Return Top-5 influential features
     end
 
     Triage->>DB: Persist Flow, Alert, Explanations, and Timestamp
     DB-->>API: Persisted Alert UUID
-    API-->>Sensor: Return 200 OK (Classification, Anomaly Score, Priority, SHAP summary)
+    API-->>Sensor: Return 200 OK Response
     
-    Analyst->>API: GET /api/v1/alerts (Polling / WebSockets)
+    Analyst->>API: GET /api/v1/alerts
     API-->>Analyst: Real-time Alert Feed with Feature Explanations
 ```
 
@@ -106,19 +106,19 @@ The system does not rely on a single classifier. Instead, it fuses supervised pr
 flowchart TD
     START(["Incoming Flow Feature Vector x"]) --> SUP_TEST{"Supervised XGBoost Prediction"}
     
-    SUP_TEST -->|Class != BENIGN| CHECK_CONF{"Supervised Probability >= 0.80?"}
-    CHECK_CONF -->|Yes| HIGH_IMPACT{"Is Attack High Impact? (DDoS, Infiltration, Botnet)"}
-    HIGH_IMPACT -->|Yes| CRIT["Priority 1: CRITICAL (Immediate Escalation)"]
-    HIGH_IMPACT -->|No| HIGH_KNOWN["Priority 2: HIGH (Brute Force, Exploits)"]
+    SUP_TEST -->|"Class is Not BENIGN"| CHECK_CONF{"Supervised Probability >= 0.80?"}
+    CHECK_CONF -->|"Yes"| HIGH_IMPACT{"Is Attack High Impact? (DDoS, Infiltration, Botnet)"}
+    HIGH_IMPACT -->|"Yes"| CRIT["Priority 1: CRITICAL (Immediate Escalation)"]
+    HIGH_IMPACT -->|"No"| HIGH_KNOWN["Priority 2: HIGH (Brute Force, Exploits)"]
     
-    CHECK_CONF -->|No: 0.50 <= P < 0.80| RECON{"Is Recon/Scanning (PortScan)?"}
-    RECON -->|Yes| MED_KNOWN["Priority 3: MEDIUM (Port Scan / Probing)"]
-    RECON -->|No| LOW_CONF["Priority 4: LOW (Low-Confidence Alert)"]
+    CHECK_CONF -->|"No: 0.50 to 0.80"| RECON{"Is Recon or Scanning (PortScan)?"}
+    RECON -->|"Yes"| MED_KNOWN["Priority 3: MEDIUM (Port Scan / Probing)"]
+    RECON -->|"No"| LOW_CONF["Priority 4: LOW (Low-Confidence Alert)"]
 
-    SUP_TEST -->|Class == BENIGN| ANOM_TEST{"Unsupervised Anomaly Score S"}
-    ANOM_TEST -->|S >= 0.85| ZERO_DAY["Priority 2: HIGH (Potential Zero-Day / Novel Threat)"]
-    ANOM_TEST -->|0.65 <= S < 0.85| MOD_ANOM["Priority 3: MEDIUM (Unusual Flow Variance)"]
-    ANOM_TEST -->|S < 0.65| PASS_BENIGN["Priority 5: INFO (Normal Benign Traffic)"]
+    SUP_TEST -->|"Class is BENIGN"| ANOM_TEST{"Unsupervised Anomaly Score S"}
+    ANOM_TEST -->|"S >= 0.85"| ZERO_DAY["Priority 2: HIGH (Potential Zero-Day Novel Threat)"]
+    ANOM_TEST -->|"0.65 to 0.85"| MOD_ANOM["Priority 3: MEDIUM (Unusual Flow Variance)"]
+    ANOM_TEST -->|"S < 0.65"| PASS_BENIGN["Priority 5: INFO (Normal Benign Traffic)"]
 
     CRIT --> GEN_ALERT["Generate Prioritized Alert Record"]
     HIGH_KNOWN --> GEN_ALERT
@@ -138,11 +138,11 @@ For every prioritized alert, CyberSentinel AI executes a SHAP (SHapley Additive 
 ```mermaid
 flowchart LR
     INPUT_FLOW["Normalized Flow Features"] --> TREE_EXP["XGBoost TreeExplainer (Tree SHAP)"]
-    TREE_EXP --> COND_EXP["Calculate Shapley Values φ_i for each feature"]
-    COND_EXP --> RANK["Sort by Absolute Contribution |φ_i|"]
+    TREE_EXP --> COND_EXP["Calculate Shapley Values for each feature"]
+    COND_EXP --> RANK["Sort by Absolute Contribution"]
     RANK --> TOP5["Extract Top-5 Explaining Features"]
     
-    TOP5 --> FORMAT["Render Attribution Card: Feature Name, Observed Value, Direction (+/-)"]
+    TOP5 --> FORMAT["Render Attribution Card with Feature Impact"]
     FORMAT --> UI_CARD["Dashboard Explanatory Visual (Waterfall / Bar Chart)"]
 ```
 
@@ -169,7 +169,7 @@ flowchart TD
 
     subgraph STATISTICAL_TESTS["Statistical Drift Tests"]
         BUFFER --> KS_TEST["Kolmogorov-Smirnov (KS) Test (Continuous Features)"]
-        BASELINE[("Baseline Training Baseline (Parquet)")] --> KS_TEST
+        BASELINE[("Baseline Training Reference (Parquet)")] --> KS_TEST
         
         BUFFER --> PSI_TEST["Population Stability Index (PSI) (Binned Distributions)"]
         BASELINE --> PSI_TEST
@@ -177,16 +177,16 @@ flowchart TD
         BUFFER --> RATE_TEST["Alert Frequency Ratio Test (Spike Detection)"]
     end
 
-    subgraph TRIAGE_ACTION["Drift Alerting & Governance"]
-        KS_TEST --> EVAL_DRIFT{"Is p-value < 0.05 or PSI > 0.20?"}
+    subgraph TRIAGE_ACTION["Drift Alerting and Governance"]
+        KS_TEST --> EVAL_DRIFT{"Is p-value below 0.05 or PSI above 0.20?"}
         PSI_TEST --> EVAL_DRIFT
         RATE_TEST --> EVAL_DRIFT
         
-        EVAL_DRIFT -->|No| STABLE["System State: STABLE (Normal Operations)"]
-        EVAL_DRIFT -->|Yes| DRIFT_WARN["System State: DRIFT DETECTED"]
-        DRIFT_WARN --> NOTIFY["Notify SOC Lead & Trigger Drift Dashboard Banner"]
-        NOTIFY --> MANUAL["Human-in-the-Loop Model Validation & Retraining Review"]
-        MANUAL -.->|Explicit Approval Required| RETRAIN["Controlled Offline Retraining"]
+        EVAL_DRIFT -->|"No"| STABLE["System State: STABLE (Normal Operations)"]
+        EVAL_DRIFT -->|"Yes"| DRIFT_WARN["System State: DRIFT DETECTED"]
+        DRIFT_WARN --> NOTIFY["Notify SOC Lead and Trigger Drift Dashboard Banner"]
+        NOTIFY --> MANUAL["Human-in-the-Loop Model Validation and Retraining Review"]
+        MANUAL -.->|"Explicit Approval Required"| RETRAIN["Controlled Offline Retraining"]
     end
 ```
 

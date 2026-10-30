@@ -56,8 +56,8 @@ CyberSentinel AI operates on an asynchronous pipeline architecture connecting in
 
 ```mermaid
 flowchart TD
-    subgraph INGESTION["1. Ingestion & Preprocessing"]
-        CSV["Dataset Files (CIC-IDS2017)"] --> PRE["Flow Sanitizer & RobustScaler"]
+    subgraph INGESTION["1. Ingestion and Preprocessing"]
+        CSV["Dataset Files (CIC-IDS2017)"] --> PRE["Flow Sanitizer and RobustScaler"]
         STREAM["Streaming REST API"] --> PRE
     end
 
@@ -65,24 +65,24 @@ flowchart TD
         PRE --> SUP["XGBoost Multi-Class Classifier"]
         PRE --> UNSUP["Isolation Forest Anomaly Detector"]
         
-        SUP -->|Predicted Class & Confidence| TRIAGE["Priority Triage & Severity Matrix"]
-        UNSUP -->|Anomaly Score [0, 1]| TRIAGE
+        SUP -->|"Predicted Class and Confidence"| TRIAGE["Priority Triage and Severity Matrix"]
+        UNSUP -->|"Anomaly Score (0 to 1)"| TRIAGE
     end
 
     subgraph EXPLAINABILITY["3. Explainable AI (XAI)"]
-        TRIAGE -->|If Alert Prioritized| SHAP_EXP["SHAP TreeExplainer"]
-        SHAP_EXP -->|Top-5 Flow Drivers| ENRICH["Enriched Alert Envelope"]
+        TRIAGE -->|"If Alert Prioritized"| SHAP_EXP["SHAP TreeExplainer"]
+        SHAP_EXP -->|"Top-5 Flow Drivers"| ENRICH["Enriched Alert Envelope"]
     end
 
-    subgraph PERSISTENCE["4. Database & Drift Tracking"]
+    subgraph PERSISTENCE["4. Database and Drift Tracking"]
         ENRICH --> DB[("PostgreSQL / SQLite Storage")]
-        PRE --> DRIFT["Traffic Drift Engine (KS-Test & PSI)"]
+        PRE --> DRIFT["Traffic Drift Engine (KS-Test and PSI)"]
         DRIFT --> DB
     end
 
-    subgraph PRESENTATION["5. Web Dashboard & API"]
+    subgraph PRESENTATION["5. Web Dashboard and API"]
         DB --> API["FastAPI REST Services"]
-        API --> DASH["Web Dashboard (Bootstrap 5 & Chart.js)"]
+        API --> DASH["Web Dashboard (Bootstrap 5 and Chart.js)"]
         DASH --> ANALYST["SOC Security Analyst"]
     end
 ```
