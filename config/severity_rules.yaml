@@ -1,0 +1,79 @@
+# Alert Severity & Prioritization Rules Matrix
+
+priorities:
+  CRITICAL:
+    level: 1
+    description: "Active high-impact attack or high-confidence known exploit with severe potential damage"
+    color: "#dc3545"
+    sla_response_minutes: 15
+  HIGH:
+    level: 2
+    description: "Known attack detected with moderate-to-high confidence or intense anomalous deviation"
+    color: "#fd7e14"
+    sla_response_minutes: 60
+  MEDIUM:
+    level: 3
+    description: "Suspicious reconnaissance, scanning, or moderate anomaly score requiring analyst review"
+    color: "#ffc107"
+    sla_response_minutes: 240
+  LOW:
+    level: 4
+    description: "Minor anomaly or low-confidence classification anomaly"
+    color: "#0dcaf0"
+    sla_response_minutes: 1440
+  INFO:
+    level: 5
+    description: "Benign traffic with benign profile or baseline operational telemetry"
+    color: "#6c757d"
+    sla_response_minutes: null
+
+rules:
+  # Rule 1: High confidence destructive attacks (DDoS, DoS, Infiltration, Botnet)
+  - id: "RULE_001_HIGH_IMPACT_EXPLOIT"
+    name: "High-Confidence Destructive Attack"
+    priority: "CRITICAL"
+    condition:
+      attack_classes: ["DDoS", "DoS_Hulk", "DoS_GoldenEye", "Infiltration", "Botnet"]
+      min_supervised_probability: 0.80
+
+  # Rule 2: Brute force & credential attacks
+  - id: "RULE_002_CREDENTIAL_ATTACK"
+    name: "Brute Force Authentication Attempt"
+    priority: "HIGH"
+    condition:
+      attack_classes: ["FTP-Patator", "SSH-Patator", "Web_Attack_Brute_Force"]
+      min_supervised_probability: 0.70
+
+  # Rule 3: Novel Zero-Day Suspicion (Unsupervised Anomaly without known classifier match)
+  - id: "RULE_003_NOVEL_UNSUPERVISED_ANOMALY"
+    name: "Potential Zero-Day / Novel Traffic Anomaly"
+    priority: "HIGH"
+    condition:
+      supervised_class: "BENIGN"
+      min_anomaly_score: 0.85
+
+  # Rule 4: Moderate Unknown Anomaly
+  - id: "RULE_004_MODERATE_ANOMALY"
+    name: "Unusual Flow Statistical Divergence"
+    priority: "MEDIUM"
+    condition:
+      supervised_class: "BENIGN"
+      min_anomaly_score: 0.65
+      max_anomaly_score: 0.85
+
+  # Rule 5: Reconnaissance & Port Scanning
+  - id: "RULE_005_PORT_SCAN"
+    name: "Network Probing & Port Scan"
+    priority: "MEDIUM"
+    condition:
+      attack_classes: ["PortScan"]
+      min_supervised_probability: 0.60
+
+  # Rule 6: Ambiguous/Low-confidence detection
+  - id: "RULE_006_LOW_CONFIDENCE_MALICIOUS"
+    name: "Low Confidence Malicious Signal"
+    priority: "LOW"
+    condition:
+      attack_classes: ["*"]
+      min_supervised_probability: 0.40
+      max_supervised_probability: 0.60

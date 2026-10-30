@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}CyberSentinel AI | SOC Operations Dashboard{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <!-- Stat 1: Total Flows -->
+    <div class="col-md-3">
+        <div class="card card-cyber p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-secondary small text-uppercase fw-semibold">Flows Ingested</div>
+                    <div class="fs-3 fw-bold text-light" id="stat-total-flows">{{ total_flows }}</div>
+                </div>
+                <div class="fs-1 text-primary"><i class="bi bi-activity"></i></div>
+            </div>
+            <div class="text-secondary small mt-2">
+                <i class="bi bi-arrow-up text-success"></i> Streaming Ingestion Active
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat 2: Active Alerts -->
+    <div class="col-md-3">
+        <div class="card card-cyber p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-secondary small text-uppercase fw-semibold">Active Alerts (P1-P3)</div>
+                    <div class="fs-3 fw-bold text-danger" id="stat-active-alerts">{{ total_alerts }}</div>
+                </div>
+                <div class="fs-1 text-danger"><i class="bi bi-shield-exclamation"></i></div>
+            </div>
+            <div class="text-secondary small mt-2">
+                <span class="text-danger fw-bold">{{ critical_count }}</span> Critical Priorities
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat 3: Novel Anomalies -->
+    <div class="col-md-3">
+        <div class="card card-cyber p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-secondary small text-uppercase fw-semibold">Novel Anomalies</div>
+                    <div class="fs-3 fw-bold text-warning" id="stat-anomalies">{{ anomaly_count }}</div>
+                </div>
+                <div class="fs-1 text-warning"><i class="bi bi-cpu"></i></div>
+            </div>
+            <div class="text-secondary small mt-2">
+                Isolation Depth &gt; 0.65 threshold
+            </div>
+        </div>
+    </div>
+
+    <!-- Stat 4: Traffic Drift -->
+    <div class="col-md-3">
+        <div class="card card-cyber p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-secondary small text-uppercase fw-semibold">Distribution Drift</div>
+                    <div class="fs-4 fw-bold {% if drift_detected %}text-danger{% else %}text-success{% endif %}">
+                        {% if drift_detected %}DRIFT DETECTED{% else %}STABLE{% endif %}
+                    </div>
+                </div>
+                <div class="fs-1 {% if drift_detected %}text-danger{% else %}text-success{% endif %}">
+                    <i class="bi {% if drift_detected %}bi-exclamation-triangle{% else %}bi-check-circle{% endif %}"></i>
+                </div>
+            </div>
+            <div class="text-secondary small mt-2">
+                KS-Test p &gt; 0.05 • PSI &lt; 0.20
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="card card-cyber p-3 h-100">
+            <h5 class="card-title text-light mb-3"><i class="bi bi-graph-up me-2"></i>Network Ingestion & Threat Velocity</h5>
+            <canvas id="trafficTrendChart" height="110"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card card-cyber p-3 h-100">
+            <h5 class="card-title text-light mb-3"><i class="bi bi-pie-chart me-2"></i>Threat Class Breakdown</h5>
+            <canvas id="threatBreakdownChart" height="220"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Live Alert Triage Feed -->
+<div class="card card-cyber p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="card-title text-light mb-0"><i class="bi bi-bell-fill me-2 text-warning"></i>Security Alert Triage Feed</h5>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-info" onclick="location.reload()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-cyber table-hover align-middle">
+            <thead class="text-secondary small text-uppercase">
+                <tr>
+                    <th>Priority</th>
+                    <th>Threat Classification</th>
+                    <th>Confidence</th>
+                    <th>Anomaly Score</th>
+                    <th>Rule Matched</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in recent_alerts %}
+                <tr>
+                    <td>
+                        <span class="badge badge-{{ alert.priority.lower() }} px-2 py-1">
+                            {{ alert.priority }}
+                        </span>
+                    </td>
+                    <td class="fw-bold text-light">{{ alert.attack_class }}</td>
+                    <td>{{ "%.1f"|format(alert.supervised_confidence * 100) }}%</td>
+                    <td>
+                        <div class="progress" style="height: 6px; width: 80px;">
+                            <div class="progress-bar {% if alert.anomaly_score > 0.65 %}bg-danger{% else %}bg-info{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {{ alert.anomaly_score * 100 }}%">
+                            </div>
+                        </div>
+                        <small class="text-secondary">{{ "%.2f"|format(alert.anomaly_score) }}</small>
+                    </td>
+                    <td class="small text-secondary font-monospace">{{ alert.rule_matched }}</td>
+                    <td>
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                            {{ alert.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewAlertExplainer('{{ alert.id }}')">
+                            <i class="bi bi-lightbulb me-1"></i> Explain (SHAP)
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-secondary">
+                        <i class="bi bi-shield-check fs-2 d-block mb-2 text-success"></i>
+                        No active intrusion alerts. Baseline traffic is nominal.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: SHAP Explainability Breakdown -->
+<div class="modal fade" id="explainerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content card-cyber border border-info">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-info"><i class="bi bi-cpu me-2"></i>SHAP Feature Attribution Breakdown</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalExplainerContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-info" role="status"></div>
+                    <div class="text-secondary mt-2">Calculating Shapley values...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize Trend Chart
+    const trendCtx = document.getElementById('trafficTrendChart').getContext('2d');
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
+            datasets: [
+                {
+                    label: 'Total Ingested Flows/min',
+                    data: [1200, 1450, 1380, 2100, 1800, 2400, 1950],
+                    borderColor: '#06b6d4',
+                    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Anomalous Spikes',
+                    data: [5, 3, 2, 85, 12, 4, 1],
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#94a3b8' } } },
+            scales: {
+                x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+                y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
+            }
+        }
+    });
+
+    // Initialize Threat Breakdown Chart
+    const threatCtx = document.getElementById('threatBreakdownChart').getContext('2d');
+    new Chart(threatCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['BENIGN', 'DDoS / DoS', 'PortScan', 'Brute Force', 'Novel Anomaly'],
+            datasets: [{
+                data: [85, 7, 4, 2, 2],
+                backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8' } } }
+        }
+    });
+
+    // View SHAP Explainer Modal
+    function viewAlertExplainer(alertId) {
+        const modal = new bootstrap.Modal(document.getElementById('explainerModal'));
+        modal.show();
+        fetch(`/api/v1/alerts/${alertId}`)
+            .then(res => res.json())
+            .then(data => {
+                let html = `
+                    <div class="mb-3">
+                        <h6><strong>Alert:</strong> <span class="badge badge-${data.priority.toLowerCase()}">${data.priority}</span> ${data.attack_class}</h6>
+                        <p class="text-secondary small mb-1">Rule: <code>${data.rule_matched}</code></p>
+                    </div>
+                    <h6 class="text-light mt-3 mb-2">Key Features Influencing Decision (SHAP):</h6>
+                    <div class="list-group list-group-flush border-top border-secondary">
+                `;
+                data.explanations.forEach(exp => {
+                    const isPositive = exp.shap_attribution > 0;
+                    const badgeClass = isPositive ? 'bg-danger text-white' : 'bg-success text-white';
+                    html += `
+                        <div class="list-group-item bg-transparent text-light border-secondary d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-semibold">${exp.feature}</div>
+                                <div class="small text-secondary">Observed Value: <strong>${exp.value}</strong></div>
+                            </div>
+                            <span class="badge ${badgeClass} font-monospace">${isPositive ? '+' : ''}${exp.shap_attribution}</span>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+                document.getElementById('modalExplainerContent').innerHTML = html;
+            })
+            .catch(err => {
+                document.getElementById('modalExplainerContent').innerHTML = `<div class="alert alert-danger">Failed to load explanation data.</div>`;
+            });
+    }
+</script>
+{% endblock %}

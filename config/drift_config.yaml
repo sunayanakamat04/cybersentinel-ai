@@ -1,0 +1,46 @@
+# Traffic & Feature Drift Monitoring Configuration
+
+drift_engine:
+  reference_dataset: "data/processed/baseline_reference_sample.parquet"
+  sliding_window_size: 1000
+  evaluation_interval_records: 500
+  min_samples_for_drift_test: 200
+
+tests:
+  # Kolmogorov-Smirnov Test (Non-parametric test for continuous distribution shift)
+  kolmogorov_smirnov:
+    enabled: true
+    significance_level_alpha: 0.05
+    warning_threshold_p_value: 0.05
+    critical_threshold_p_value: 0.01
+
+  # Population Stability Index (PSI) (Quantifies distribution divergence across buckets)
+  population_stability_index:
+    enabled: true
+    num_bins: 10
+    thresholds:
+      no_change: 0.10
+      moderate_drift: 0.20
+      significant_drift: 0.25
+
+monitored_features:
+  - name: "Flow Duration"
+    weight: 1.0
+  - name: "Total Fwd Packets"
+    weight: 1.2
+  - name: "Total Length of Fwd Packets"
+    weight: 1.2
+  - name: "Flow Bytes/s"
+    weight: 1.5
+  - name: "Flow Packets/s"
+    weight: 1.5
+  - name: "Average Packet Size"
+    weight: 1.0
+  - name: "Init_Win_bytes_forward"
+    weight: 0.8
+
+alerting:
+  on_drift_detected:
+    trigger_investigation_alert: true
+    automatic_retrain_allowed: false  # Explicitly requires human analyst sign-off as per project specification
+    log_channel: "security_audit_log"

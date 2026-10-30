@@ -1,0 +1,86 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.db
+*.sqlite
+*.sqlite3
+
+# Data directories (do not commit large raw/processed network flow datasets)
+data/raw/*
+!data/raw/README.md
+data/processed/*
+!data/processed/README.md
+data/interim/*
+
+# Model binaries & large weights
+models/*.joblib
+models/*.json
+models/*.onnx
+models/*.pkl
+models/*.pt
+models/*.bin
+!models/README.md
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+
+# IDEs & OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Legacy archive
+_archive/
+
+# Logs & temporary runtimes
+*.log
+logs/
+tmp/
+run/

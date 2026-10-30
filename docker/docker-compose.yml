@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: cybersentinel-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cybersentinel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sentinel_secure_pass_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-cybersentinel_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cybersentinel} -d ${POSTGRES_DB:-cybersentinel_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: cybersentinel-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_NAME: "CyberSentinel AI"
+      APP_ENV: "production"
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER:-cybersentinel}:${POSTGRES_PASSWORD:-sentinel_secure_pass_2026}@db:5432/${POSTGRES_DB:-cybersentinel_db}"
+      DATABASE_SYNC_URL: "postgresql://${POSTGRES_USER:-cybersentinel}:${POSTGRES_PASSWORD:-sentinel_secure_pass_2026}@db:5432/${POSTGRES_DB:-cybersentinel_db}"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../models:/app/models
+      - ../data:/app/data
+      - ../config:/app/config
+
+volumes:
+  postgres_data:
+    driver: local
